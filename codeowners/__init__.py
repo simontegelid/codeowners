@@ -9,6 +9,7 @@ OwnerTuple = Tuple[Literal["USERNAME", "TEAM", "EMAIL"], str]
 
 
 TEAM = re.compile(r"^@\S+/\S+")
+DOUBLE_QUOTED_USERNAME = re.compile(r"^@\"[^\"]+?\"")
 USERNAME = re.compile(r"^@\S+")
 EMAIL = re.compile(r"^\S+@\S+")
 MASK = "/" * 20
@@ -110,11 +111,13 @@ def path_to_regex(pattern: str) -> Pattern[str]:
 
 def parse_owner(owner: str) -> Optional[OwnerTuple]:
     if TEAM.match(owner):
-        return ("TEAM", owner)
+        return ("TEAM", TEAM.match(owner).group())
+    if DOUBLE_QUOTED_USERNAME.match(owner):
+        return ("USERNAME", DOUBLE_QUOTED_USERNAME.match(owner).group())
     if USERNAME.match(owner):
-        return ("USERNAME", owner)
+        return ("USERNAME", USERNAME.match(owner).group())
     if EMAIL.match(owner):
-        return ("EMAIL", owner)
+        return ("EMAIL", EMAIL.match(owner).group())
     return None
 
 
@@ -136,15 +139,20 @@ class CodeOwners:
                 section_name = line[2:-1]
                 continue
 
-            elements = iter(line.replace("\\ ", MASK).split())
-            path = next(elements, None)
-            if path is None:
-                continue
+            line = line.replace("\\ ", MASK)
+            parts = line.split(maxsplit=1)
+            if len(parts) == 1:
+                path, ownerstr = parts[0], ""
+            elif len(parts) == 2:
+                path, ownerstr = parts
             owners: List[OwnerTuple] = []
-            for owner in elements:
-                owner_res = parse_owner(owner)
-                if owner_res is not None:
-                    owners.append(owner_res)
+            while ownerstr != "":
+                owner_res = parse_owner(ownerstr)
+                if owner_res is None:
+                    raise ValueError(
+                        f"Could not parse owner on line {line_num}: {line}")
+                owners.append(owner_res)
+                ownerstr = ownerstr[len(owner_res[1]) :].strip()
             paths.append(
                 (
                     path_to_regex(path),

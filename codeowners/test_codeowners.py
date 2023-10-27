@@ -54,11 +54,15 @@ apps/ @octocat
 # Now, optional approval rule for GitLab's sections
 ^[Second team]
 
-^[Second team trailing whitespace]   
+^[Second team trailing whitespace]
 
 # In this example, @doctocat owns any file in the `/docs`
 # directory in the root of your repository.
 /docs/ @doctocat
+
+# A full name owner
+/full-name/file.txt @"John Doe"
+/full-name/file2.txt @"John Doe" @"Jane Doe"
 """
 
 
@@ -93,6 +97,8 @@ apps/ @octocat
         ("foo/apps/foo.js", [("USERNAME", "@octocat")]),
         ("foo/apps/bar/buzz/foo.js", [("USERNAME", "@octocat")]),
         ("docs/foo.js", [("USERNAME", "@doctocat")]),
+        ("full-name/file.txt", [("USERNAME", '@"John Doe"')]),
+        ("full-name/file2.txt", [("USERNAME", '@"John Doe"'), ("USERNAME", '@"Jane Doe"')]),
     ],
 )
 def test_github_example_matches(
